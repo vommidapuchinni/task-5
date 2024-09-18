@@ -21,6 +21,31 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+  tags = {
+    Name = "main-igw"
+  }
+}
+
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "public-route-table"
+  }
+}
+
+resource "aws_route_table_association" "public_subnet_association" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+
 resource "aws_security_group" "medusa_sg" {
   name_prefix = "medusa_sg"
   vpc_id      = aws_vpc.main.id
@@ -35,13 +60,6 @@ resource "aws_security_group" "medusa_sg" {
   ingress {
     from_port   = 9000
     to_port     = 9000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 9001
-    to_port     = 9001
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
