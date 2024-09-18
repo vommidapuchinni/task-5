@@ -37,55 +37,8 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Update Docker Compose file
-            cat <<EOT > /home/ubuntu/medusa/docker-compose.yml
-            version: '3.8'
-
-            services:
-              medusa:
-                image: chinni111/medusa:latest
-                container_name: medusa
-                environment:
-                  - JWT_SECRET=something
-                  - COOKIE_SECRET=something
-                  - DATABASE_TYPE=postgres
-                  - DATABASE_URL=postgres://postgres:chinni@postgres:5432/medusa_db
-                  - REDIS_URL=redis://redis:6379
-                ports:
-                  - "9000:9000"
-                depends_on:
-                  - postgres
-                  - redis
-                networks:
-                  - medusa-network
-
-              postgres:
-                image: postgres:13
-                container_name: postgres
-                environment:
-                  POSTGRES_USER: postgres
-                  POSTGRES_PASSWORD: chinni
-                  POSTGRES_DB: medusa_db
-                ports:
-                  - "5432:5432"
-                networks:
-                  - medusa-network
-
-              redis:
-                image: redis
-                container_name: redis
-                ports:
-                  - "6379:6379"
-                networks:
-                  - medusa-network
-
-            networks:
-              medusa-network:
-                driver: bridge
-            EOT
-
-            # Start Docker Compose
+            # SSH into EC2 and pull the latest Docker image and restart services
             cd /home/ubuntu/medusa
+            sudo docker-compose pull
             sudo docker-compose down
             sudo docker-compose up -d
-
