@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  medusa:
+    build: .
+    container_name: medusa
+    environment:
+      - JWT_SECRET=something
+      - COOKIE_SECRET=something
+      - DATABASE_TYPE=postgres
+      - DATABASE_URL=postgres://postgres:chinni@postgres:5432/medusa_db
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "9000:9000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - medusa-network
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: chinni
+      POSTGRES_DB: medusa_db
+    ports:
+      - "5432:5432"
+    networks:
+      - medusa-network
+
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - medusa-network
+
+networks:
+  medusa-network:
+    driver: bridge
+

@@ -1,0 +1,91 @@
+name: Deploy Medusa
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t chinni111/medusa:latest .
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+      - name: Push Docker image
+        run: |
+          docker push chinni111/medusa:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Update Docker Compose file
+            cat <<EOT > /home/ubuntu/medusa/docker-compose.yml
+            version: '3.8'
+
+            services:
+              medusa:
+                image: chinni111/medusa:latest
+                container_name: medusa
+                environment:
+                  - JWT_SECRET=something
+                  - COOKIE_SECRET=something
+                  - DATABASE_TYPE=postgres
+                  - DATABASE_URL=postgres://postgres:chinni@postgres:5432/medusa_db
+                  - REDIS_URL=redis://redis:6379
+                ports:
+                  - "9000:9000"
+                depends_on:
+                  - postgres
+                  - redis
+                networks:
+                  - medusa-network
+
+              postgres:
+                image: postgres:13
+                container_name: postgres
+                environment:
+                  POSTGRES_USER: postgres
+                  POSTGRES_PASSWORD: chinni
+                  POSTGRES_DB: medusa_db
+                ports:
+                  - "5432:5432"
+                networks:
+                  - medusa-network
+
+              redis:
+                image: redis
+                container_name: redis
+                ports:
+                  - "6379:6379"
+                networks:
+                  - medusa-network
+
+            networks:
+              medusa-network:
+                driver: bridge
+            EOT
+
+            # Start Docker Compose
+            cd /home/ubuntu/medusa
+            sudo docker-compose down
+            sudo docker-compose up -d
+
