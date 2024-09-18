@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   medusa:
-    build: .
+    image: chinni111/medusa:latest
     container_name: medusa
     environment:
       - JWT_SECRET=something
@@ -41,4 +41,3 @@ services:
 networks:
   medusa-network:
     driver: bridge
-
